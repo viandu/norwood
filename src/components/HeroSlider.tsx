@@ -7,8 +7,10 @@ import { motion } from "framer-motion";
 const HeroVideo = () => {
   // Define the video source and text content directly
   const videoSrc = "/Norwood intro.mp4";
-  const title = "THE BRAND";
-  const subtitle = "OF TEA AND BITE TASTE";
+const title = "“Many compete,";
+const subtitle = "but none are my rivals.”";
+
+
 
   return (
     // The main container sets the size and acts as the animation entry point

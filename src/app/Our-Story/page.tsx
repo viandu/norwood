@@ -44,7 +44,8 @@ const OurStorySection = () => {
           >
             <div className="overflow-hidden rounded-xl shadow-2xl shadow-black/30 aspect-[4/3]">
               <Image
-                src="/bite1.png"
+             
+                    src="/peeled.png"
                 alt="A delicious snack bite"
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
