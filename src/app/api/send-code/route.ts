@@ -11,7 +11,7 @@ export async function POST() {
   const destination = process.env.COMPANY_RECIPIENT_EMAIL; // Using the consistent variable name
 
   if (!destination) {
-    console.error(Configuration error: COMPANY_RECIPIENT_EMAIL is not set in .env);
+    console.error(`Configuration error: COMPANY_RECIPIENT_EMAIL is not set in .env`);
     return NextResponse.json({ message: 'Server configuration error.' }, { status: 500 });
   }
 
@@ -48,14 +48,14 @@ export async function POST() {
       from: process.env.EMAIL_FROM,
       to: destination,
       subject: 'Your Norwood Empire Admin Registration Code',
-      text: Your one-time registration code is: ${code}. It will expire in 10 minutes.,
-      html: <p>Your one-time registration code is: <strong>${code}</strong>.</p><p>It will expire in 10 minutes.</p>,
+      text: `Your one-time registration code is: ${code}. It will expire in 10 minutes.`,
+      html: `<p>Your one-time registration code is: <strong>${code}</strong>.</p><p>It will expire in 10 minutes.</p>`,
     });
 
-    return NextResponse.json({ message: Verification code sent to the designated email. }, { status: 200 });
+    return NextResponse.json({ message: `Verification code sent to the designated email.` }, { status: 200 });
 
   } catch (error: unknown) {
-    console.error(Failed to send code via email:, error);
+    console.error(`Failed to send code via email:`, error);
     const errorMessage =
       error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message

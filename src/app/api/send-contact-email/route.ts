@@ -41,10 +41,10 @@ export async function POST(req: Request) {
 
     // Define the email options
     const mailOptions = {
-      from: "${process.env.EMAIL_FROM_NAME}" <${process.env.SMTP_USER}>,
+      from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.SMTP_USER}>`,
       to: process.env.COMPANY_RECIPIENT_EMAIL, // The email address that receives the form submission
       replyTo: email, // Set the Reply-To to the user's email
-      subject: New Contact Form Submission: ${subject},
+      subject: `New Contact Form Submission: ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
           <h2 style="color: #16a34a;">New Message from Norwood Empire Contact Form</h2>
