@@ -1,104 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail } from '@/lib/mailjet'; // Assuming this path is now correct
+import { NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 
-export async function POST(request: NextRequest) {
+// Handle POST requests
+export async function POST(req: Request) {
+  // Check for environment variables
+  if (
+    !process.env.SMTP_USER ||
+    !process.env.SMTP_PASS ||
+    !process.env.COMPANY_RECIPIENT_EMAIL
+  ) {
+    console.error("Missing required environment variables for sending email.");
+    return NextResponse.json(
+      { success: false, error: "Server configuration error." },
+      { status: 500 }
+    );
+  }
+
   try {
-    const { name, email, subject, message } = await request.json();
+    const { name, email, subject, message } = await req.json();
 
+    // Basic validation
     if (!name || !email || !subject || !message) {
-      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields.' },
+        { status: 400 }
+      );
     }
 
-    const receiverEmail = process.env.CONTACT_FORM_RECEIVER_EMAIL;
-    const senderEmail = process.env.MAILJET_SENDER_EMAIL;
-    const senderName = process.env.MAILJET_SENDER_NAME || "Contact Form";
-
-    if (!receiverEmail) {
-      console.error('CONTACT_FORM_RECEIVER_EMAIL is not set in .env');
-      return NextResponse.json({ success: false, error: 'Server configuration error (receiver missing).' }, { status: 500 });
-    }
-    if (!senderEmail) {
-        console.error('MAILJET_SENDER_EMAIL is not set in .env');
-        return NextResponse.json({ success: false, error: 'Server configuration error (sender missing).' }, { status: 500 });
-    }
-
-    const emailSubject = `New Contact Form Submission: ${subject}`;
-    const textContent = `
-      You have a new message from your contact form:
-      --------------------------------------------------
-      Name: ${name}
-      Email: ${email}
-      Subject: ${subject}
-      --------------------------------------------------
-      Message:
-      ${message}
-      --------------------------------------------------
-    `;
-    const htmlContent = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-            h2 { color: #0056b3; }
-            .field { margin-bottom: 10px; }
-            .field strong { display: inline-block; width: 80px; }
-            .message { margin-top: 15px; padding: 10px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 3px;}
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h2>New Contact Form Submission</h2>
-            <p>You have received a new message through the contact form on your website.</p>
-            <div class="field"><strong>From:</strong> ${name}</div>
-            <div class="field"><strong>Email:</strong> <a href="mailto:${email}">${email}</a></div>
-            <div class="field"><strong>Subject:</strong> ${subject}</div>
-            <div class="message">
-              <strong>Message:</strong>
-              <p>${message.replace(/\n/g, '<br>')}</p>
-            </div>
-            <hr>
-            <p><small>This email was sent from the contact form on ${process.env.MAILJET_SENDER_NAME || 'your website'}.</small></p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const emailResult = await sendEmail({
-      toEmail: receiverEmail,
-      subject: emailSubject,
-      textPart: textContent,
-      htmlPart: htmlContent,
-      fromEmail: senderEmail,
-      fromName: `${name} (via ${senderName})`,
+    // Create a transporter object using Gmail SMTP
+    // We use port 465 with SSL, which is the recommended secure option
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS, // Use the App Password here
+      },
     });
 
-    if (emailResult.success) {
-      return NextResponse.json({ success: true, message: 'Email sent successfully' });
-    } else {
-      // Log the specific error from Mailjet if available
-      console.error('Failed to send email via Mailjet:', emailResult.error);
-      // Provide a more generic error to the client, or a specific one if safe
-      const clientError = (typeof emailResult.error === 'string') ? emailResult.error : 'Failed to send email due to a server issue.';
-      return NextResponse.json({ success: false, error: clientError }, { status: 500 });
-    }
+    // Define the email options
+    const mailOptions = {
+      from: "${process.env.EMAIL_FROM_NAME}" <${process.env.SMTP_USER}>,
+      to: process.env.COMPANY_RECIPIENT_EMAIL, // The email address that receives the form submission
+      replyTo: email, // Set the Reply-To to the user's email
+      subject: New Contact Form Submission: ${subject},
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2 style="color: #16a34a;">New Message from Norwood Empire Contact Form</h2>
+          <p>You have received a new message from your website's contact form.</p>
+          <hr>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <p><strong>Message:</strong></p>
+          <p style="padding: 10px; border-left: 3px solid #ccc; background-color: #f9f9f9;">
+            ${message.replace(/\n/g, '<br>')}
+          </p>
+        </div>
+      `,
+    };
 
-  } catch (error) { // Type 'any' removed, 'error' is now 'unknown' by default
-    console.error('Error in /api/send-contact-email endpoint:', error);
-    
-    let errorMessage = 'An unexpected error occurred on the server.';
-    if (error instanceof Error) {
-      // Standard JavaScript error
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      // Error is a string
-      errorMessage = error;
-    } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-      // Error is an object with a message property (like some custom errors)
-      errorMessage = error.message;
-    }
-    // Add more specific checks if you expect other error structures
+    // Send the email
+    await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
+    // Return a success response
+    // This matches what your frontend expects: { success: true }
+    return NextResponse.json({ success: true }, { status: 200 });
+
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to send message.' },
+      { status: 500 }
+    );
   }
 }
