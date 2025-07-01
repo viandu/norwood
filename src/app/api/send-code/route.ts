@@ -8,11 +8,10 @@ function generateCode(): string {
 }
 
 export async function POST() {
-  // We no longer need to check the method, as it will always be email.
-  const destination = process.env.CONTACT_EMAIL;
+  const destination = process.env.COMPANY_RECIPIENT_EMAIL; // Using the consistent variable name
 
   if (!destination) {
-    console.error(`Configuration error: CONTACT_EMAIL is not set in .env`);
+    console.error(Configuration error: COMPANY_RECIPIENT_EMAIL is not set in .env);
     return NextResponse.json({ message: 'Server configuration error.' }, { status: 500 });
   }
 
@@ -25,7 +24,6 @@ export async function POST() {
     const db = client.db(process.env.MONGODB_DB_NAME);
     const verificationCodes = db.collection('verificationCodes');
 
-    // Clean up old codes for the same destination before inserting a new one
     await verificationCodes.deleteMany({ destination });
     await verificationCodes.insertOne({
       destination,
@@ -35,13 +33,14 @@ export async function POST() {
     });
 
     // --- Send the code via email ---
+    // ✅ CORRECTED TRANSPORTER CONFIGURATION
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: true, // true for port 465
+      host: 'smtp.gmail.com', // Hardcode Gmail's SMTP server
+      port: 465,             // Hardcode the secure port
+      secure: true,          // Use SSL
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        pass: process.env.SMTP_PASS, // This is your App Password
       },
     });
 
@@ -49,14 +48,14 @@ export async function POST() {
       from: process.env.EMAIL_FROM,
       to: destination,
       subject: 'Your Norwood Empire Admin Registration Code',
-      text: `Your one-time registration code is: ${code}. It will expire in 10 minutes.`,
-      html: `<p>Your one-time registration code is: <strong>${code}</strong>.</p><p>It will expire in 10 minutes.</p>`,
+      text: Your one-time registration code is: ${code}. It will expire in 10 minutes.,
+      html: <p>Your one-time registration code is: <strong>${code}</strong>.</p><p>It will expire in 10 minutes.</p>,
     });
 
-    return NextResponse.json({ message: `Verification code sent to the designated email.` }, { status: 200 });
+    return NextResponse.json({ message: Verification code sent to the designated email. }, { status: 200 });
 
   } catch (error: unknown) {
-    console.error(`Failed to send code via email:`, error);
+    console.error(Failed to send code via email:, error);
     const errorMessage =
       error && typeof error === 'object' && 'message' in error
         ? (error as { message: string }).message
